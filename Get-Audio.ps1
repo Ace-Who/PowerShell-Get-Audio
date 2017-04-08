@@ -53,7 +53,7 @@ if (
   ($InputFiles[0].GetType().BaseType.Name -eq 'Array')
 ) { $InputFiles = $InputFiles[0] }
 
-Function NotUsedPath ([String]$Path) {
+Function Change-IfUsed ([String]$Path) {
   if (-not (Test-Path $Path)) { return $Path }
   $root = Split-Path $Path
   $leaf = Split-Path $Path -Leaf
@@ -81,28 +81,28 @@ Function Parse-Cuesheet ([String]$File, [String]$Duration) {
     $line = $line.Trim()
     if ($line -match '^track +(\d+)') {
       $track = New-Object -TypeName Object
-      Add-Member -InputObject $track NoteProperty trackNr $Matches[1]
+      Add-Member -InputObject $track NoteProperty TrackNr $Matches[1]
       $tracks += $track
       # $null = $tracks.Add($track)
     } elseif (($line -match '^title +(.+)') -and ($track -ne $null)) {
-      Add-Member -InputObject $track NoteProperty title `
+      Add-Member -InputObject $track NoteProperty Title `
         $Matches[1].Replace('"', '')
     } elseif ($line -match '^index +01 +(.+)') {
-      Add-Member -InputObject $track NoteProperty index $Matches[1]
-      Add-Member -InputObject $track NoteProperty startTime `
-        (CueIndex-to-Time $track.index)
+      Add-Member -InputObject $track NoteProperty Index $Matches[1]
+      Add-Member -InputObject $track NoteProperty StartTime `
+        (CueIndex-to-Time $track.Index)
       if ($tracks.count -ge 2) {
         $prevTrack = $tracks[$tracks.count - 2]
-        Add-Member -InputObject $prevTrack NoteProperty endTime $track.startTime
-        Add-Member -InputObject $prevTrack NoteProperty length `
-          (New-TimeSpan $prevTrack.startTime $prevTrack.endTime)
+        Add-Member -InputObject $prevTrack NoteProperty EndTime $track.StartTime
+        Add-Member -InputObject $prevTrack NoteProperty Length `
+          (New-TimeSpan $prevTrack.StartTime $prevTrack.EndTime)
       }
     }
   }
   # The last track
-  Add-Member -InputObject $track NoteProperty endTime $Duration
-  Add-Member -InputObject $track NoteProperty length `
-    (New-TimeSpan $track.startTime $track.endTime)
+  Add-Member -InputObject $track NoteProperty EndTime $Duration
+  Add-Member -InputObject $track NoteProperty Length `
+    (New-TimeSpan $track.StartTime $track.EndTime)
   return $tracks
 }
 
@@ -154,7 +154,7 @@ foreach ($InputFile in $InputFiles) {
       $OutFile = "$OutDirectory\$($InputFile.BaseName)$Extension"
     }
 
-    $OutFile = NotUsedPath $OutFile
+    $OutFile = Change-IfUsed $OutFile
 
     Write-Host "Out[$FileCount]: $OutFile" -ForegroundColor 'DarkCyan'
 
@@ -173,8 +173,11 @@ foreach ($InputFile in $InputFiles) {
 
   } else { # $CueSheet -ne ''
 
+    # Allow the user to specify the output directory, existing or not. If not
+    # specified, use a path that is not existing.
     if ($OutDirectory -eq '') {
-      $OutDirectory = NotUsedPath "$ParentFolder\$($InputFile.BaseName)"
+      $OutDirectory = "$ParentFolder\$($InputFile.BaseName).tracks"
+      $OutDirectory = Change-IfUsed $OutDirectory
     }
 
     if ($Extension -eq '') {
@@ -207,21 +210,22 @@ foreach ($InputFile in $InputFiles) {
     }
 
     foreach ($track in $tracks) {
-      $title = $track.title -replace $nonIdentifierClass, ''
-      $OutFile = "$OutDirectory\$($track.trackNr). $title$Extension"
-      Add-Member -InputObject $track NoteProperty outFile $OutFile
+      $title = $track.Title -replace $nonIdentifierClass, ''
+      $OutFile = "$OutDirectory\$($track.TrackNr). $title$Extension"
+      $FileName = Split-Path $OutFile -Leaf
+      Add-Member -InputObject $track NoteProperty FileName $FileName
       $track
       if ($DryRun) { continue }
       if ($KeepVideo) {
-        ffmpeg -i $InputFile -map 0 -c:v copy -c:a copy -ss $track.startTime `
-          -to $track.endTime -loglevel $FFtoolLoglevel $OutFile
+        ffmpeg -i $InputFile -map 0 -c:v copy -c:a copy -ss $track.StartTime `
+          -to $track.EndTime -loglevel $FFtoolLoglevel $OutFile
       } elseif ($FastProcess) {
         # Faster but lack time accuracy on a video file with GOPs.
-        ffmpeg -ss $track.startTime -i $InputFile -map 0 -vn -c:a copy `
-          -to $track.length -loglevel $FFtoolLoglevel $OutFile
+        ffmpeg -ss $track.StartTime -i $InputFile -map 0 -vn -c:a copy `
+          -to $track.Length -loglevel $FFtoolLoglevel $OutFile
       } else {
-        ffmpeg -i $InputFile -map 0 -vn -c:a copy -ss $track.startTime `
-          -to $track.endTime -loglevel $FFtoolLoglevel $OutFile
+        ffmpeg -i $InputFile -map 0 -vn -c:a copy -ss $track.StartTime `
+          -to $track.EndTime -loglevel $FFtoolLoglevel $OutFile
       }
     }
 
