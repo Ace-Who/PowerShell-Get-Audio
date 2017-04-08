@@ -39,7 +39,8 @@ $FFtoolLoglevels = @(
 )
 
 if ($FFtoolLoglevels -cnotcontains $FFtoolLoglevel) {
-  Write-Error "Invalid fftool loglevel '$FFtoolLoglevel'. Must be one of ($($FFtoolLoglevels -join ', '))."
+  Write-Error ("Invalid fftool loglevel '$FFtoolLoglevel'." +
+    " Must be one of ($($FFtoolLoglevels -join ', ')).")
   return
 }
 
@@ -170,7 +171,7 @@ foreach ($InputFile in $InputFiles) {
 
     $OutFile = ''; ''
 
-  } else {
+  } else { # $CueSheet -ne ''
 
     if ($OutDirectory -eq '') {
       $OutDirectory = NotUsedPath "$ParentFolder\$($InputFile.BaseName)"
@@ -224,5 +225,6 @@ foreach ($InputFile in $InputFiles) {
       }
     }
 
-  }
-}
+  } # $CueSheet branches finished.
+
+} # $InputFile iteration continues.
