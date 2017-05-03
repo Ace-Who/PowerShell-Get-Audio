@@ -54,7 +54,7 @@ if (
 ) { $InputFiles = $InputFiles[0] }
 
 Function Change-IfUsed ([String]$Path) {
-  if (-not (Test-Path $Path)) { return $Path }
+  if (-not (Test-Path -LiteralPath $Path)) { return $Path }
   $root = Split-Path $Path
   $leaf = Split-Path $Path -Leaf
   $lastDot = $leaf.LastIndexOf('.')
@@ -66,7 +66,7 @@ Function Change-IfUsed ([String]$Path) {
     $i++
     $newName = "$basename ($i)$ext"
     $newPath = "$root\$newName"
-  } while (Test-Path $newPath)
+  } while (Test-Path -LiteralPath $newPath)
   Write-Warning "File/Directory already exists. A new name will be used."
   return $newPath
 }
@@ -135,12 +135,12 @@ foreach ($InputFile in $InputFiles) {
   $FileCount++
   Write-Host "In [$FileCount]: $InputFile" -ForegroundColor 'DarkGreen'
 
-  if (-not (Test-Path $InputFile)) {
+  if (-not (Test-Path -LiteralPath $InputFile)) {
     Write-Error "File `"$InputFile`" not found."
     continue
   }
 
-  $InputFile = Get-Item $InputFile
+  $InputFile = Get-Item -LiteralPath $InputFile
   $ParentFolder = Split-Path $InputFile
 
   if ($CueSheet -eq '') {
@@ -159,9 +159,9 @@ foreach ($InputFile in $InputFiles) {
     Write-Host "Out[$FileCount]: $OutFile" -ForegroundColor 'DarkCyan'
 
     if ($DryRun) {
-      if (-not (Test-Path $OutDirectory)) { mkdir $OutDirectory -WhatIf }
+      if (-not (Test-Path -LiteralPath $OutDirectory)) { mkdir $OutDirectory -WhatIf }
     } else {
-      if (-not (Test-Path $OutDirectory)) { mkdir $OutDirectory }
+      if (-not (Test-Path -LiteralPath $OutDirectory)) { mkdir $OutDirectory }
       if ($KeepVideo) {
         ffmpeg -i $InputFile -c copy -loglevel $FFtoolLoglevel $OutFile
       } else {
@@ -204,9 +204,9 @@ foreach ($InputFile in $InputFiles) {
     $tracks = Parse-Cuesheet $CueSheet $duration
 
     if ($DryRun) {
-      if (-not (Test-Path $OutDirectory)) { mkdir $OutDirectory -WhatIf }
+      if (-not (Test-Path -LiteralPath $OutDirectory)) { mkdir $OutDirectory -WhatIf }
     } else {
-      if (-not (Test-Path $OutDirectory)) { mkdir $OutDirectory }
+      if (-not (Test-Path -LiteralPath $OutDirectory)) { mkdir $OutDirectory }
     }
 
     foreach ($track in $tracks) {
@@ -232,3 +232,4 @@ foreach ($InputFile in $InputFiles) {
   } # $CueSheet branches finished.
 
 } # $InputFile iteration continues.
+
